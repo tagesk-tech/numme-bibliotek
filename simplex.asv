@@ -1,0 +1,7 @@
+%simplex
+
+
+function x = simplex(A, b, c)
+
+
+end 
