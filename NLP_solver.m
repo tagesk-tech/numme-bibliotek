@@ -1,0 +1,112 @@
+% NLP 
+
+
+% Några anteckningar i det här fallet
+% min max L(x, v, u) vi bygger en lagrangian från allting tänk att vi vill
+% maximera straffet för v och u men minimera orginalfunktionen. Titta i
+% formelhäftet och se att det här faktiskt är dualen till vår lagrangian
+% Vi har en stark dualitet där Dual < Primal => Dual = Primal. 
+% Det enda viktiga är att kontrollera är reguljäritet gäller ergo att "the
+% constrain" håller tillbaka varandra" 
+% Den sista delen ug(x) betyder egentligen att vår penalty inte ska
+% påverkar vår optimeringsvärde
+
+func1 = @(x) x.^2;
+const1 = @(x) x - 1;   % x ≤ 1
+x0_1d  = 0.5;
+x_opt1 = interior_point(func1, const1, x0_1d);
+disp(x_opt1);  % bör gå mot 0
+
+
+function x = interior_point(func, const, x0)
+
+tol = 0.001;
+slack = 100; % start with a very large slack
+lagrange = @(x) func(x) - slack * log(-const(x)); % lagrangian
+%think of what the log actually does for our constraint here the function
+%builds in the constraints into our function
+
+%1. find analytic center
+x = opt(lagrange, x0);
+while slack > tol
+    beta = 0.5 * (tol/slack)^0.2;
+    slack = slack * beta;   
+    lagrange = @(x) func(x) - slack * log(-const(x)); % lagrangian
+    x = opt(lagrange, x); %finds the new x
+end
+
+
+end
+
+% Vår gauss newton funkar
+function x = opt(func, x0)
+tol = 1e-5;
+max_iter = 1000;
+alpha = 0.5;
+x = x0;
+for i = 1:max_iter
+    H = Hessian(func, x);
+    grad = gradient(func, x);
+    H = H + 1e-8*eye(size(H));
+
+    v = -H\grad;
+    x_old = x;
+    x = x + alpha .* v;
+    if norm(x-x_old) < tol
+        break
+    end
+end
+
+
+end
+
+% Här nedan bygger vi möjligheten att kunna räkna ut Hessian och gradienten
+
+
+function H = Hessian(func, x, h)
+% HESSIAN  Finite-difference Hessian of scalar func at x
+%   H = Hessian(func, x)      uses h = 1e-6
+%   H = Hessian(func, x, h)   uses your h
+
+  if nargin<3, h = 1e-6; end
+  x = x(:);                     % ensure column vector
+  n = numel(x);
+  H = zeros(n);
+
+  f0 = func(x);
+  for i = 1:n
+    % diagonal terms
+    xp = x; xm = x;
+    xp(i) = xp(i) + h;
+    xm(i) = xm(i) - h;
+    f_plus  = func(xp);
+    f_minus = func(xm);
+    H(i,i) = (f_plus - 2*f0 + f_minus) / (h^2);
+
+    % off-diagonal terms
+    for j = i+1:n
+      xpp = x; xpm = x; xmp = x; xmm = x;
+      xpp([i j]) = x([i j]) + [ h;  h];
+      xpm([i j]) = x([i j]) + [ h; -h];
+      xmp([i j]) = x([i j]) + [-h;  h];
+      xmm([i j]) = x([i j]) + [-h; -h];
+      Hij = ( func(xpp) - func(xpm) - func(xmp) + func(xmm) ) / (4*h^2);
+      H(i,j) = Hij;
+      H(j,i) = Hij;  % symmetry
+    end
+  end
+end
+
+
+function y = gradient(func, x)
+  h = 1e-6;           
+  n = numel(x);       
+  y = zeros(n,1);
+
+  for i = 1:n
+    xp = x;  xm = x;        
+    xp(i) = x(i) + h;       
+    xm(i) = x(i) - h;
+    y(i) = (func(xp) - func(xm)) / (2*h);
+  end
+end
