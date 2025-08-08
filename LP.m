@@ -2,32 +2,38 @@
 
 % 
 
-f  = [1; 2; 3];          % kostnadsvektor för minimering
-A  = [-2 -1 -1;          % ≥-villkor skrivs om som ≤ med minus
-      -1 -3 -2;
-      -1 -1 -4];
-b  = [-5; -7; -6];
+A = [ 1 -1  1 -1  0  0;
+     -1  1  0  0  1 -1;
+      0  0 -1  1 -1  1];
+b = [25; -15; -10];
+c = [3;1;2;1;1;1];
 
-[x, index, y] = simplex(A, b, f); 
+% drop last supply–demand equation
+A_red = A(1:2,:);
+b_red = b(1:2);
+
+
+[x, index, y] = simplex(A_red, b_red, c); 
+
 
 function [x, index, y, val] = simplex(B, b, f)
 
-n = numel(b);
-I = eye(n);
-A = [B, I]; % builds the constriant with slack variables
-c = [f; zeros(n, 1)];
+%n = numel(b);
+%I = eye(n);
+%A = [B, I]; % builds the constriant with slack variables
+%c = [f; zeros(n, 1)];
+c = f;
+A = B; 
 [n, m] = size(A);
 index = [n+1:m]; % gets the starting index values
 non_index = [1:n]; % stores the locked variables
 
-for i = 1:1 % starts the indexing loop
+for i = 1:10 % starts the indexing loop
     A_b = A(:, index); % gets the first solution
-    A_v = A(:, non_index)
+    A_v = A(:, non_index);
     c_v = c(non_index);
     c_b = c(index); 
     y = A_b'\c_b; % calculates the new y
-    y
-    y'* A_v
     r_v = c_v' - y' * A_v;
 
     [min_rv, idx_add] = min(r_v);
